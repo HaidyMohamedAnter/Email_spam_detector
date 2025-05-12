@@ -1,87 +1,68 @@
+import re
+import string
 import pandas as pd
+import pickle
+import os
+import sys
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import classification_report, accuracy_score
-import pickle
-import re
-import email
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# NLTK imports
-import nltk
-nltk.data.path.append("nltk_data")  # استخدام بيانات NLTK من مجلد محلي
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
+def simple_preprocess(text):
+    try:
+        text = str(text).lower()
+        text = re.sub(r'\S+@\S+', '', text)
+        text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+        text = text.translate(str.maketrans('', '', string.punctuation))
+        text = re.sub(r'\d+', '', text)
+        text = ' '.join(text.split())
+        return text if text.strip() else ""
+    except:
+        return ""
 
-# Function to preprocess email text
-def preprocess_email(text):
-    """Preprocess the text by removing headers, links, tokenizing, and lemmatizing."""
+def preprocess_email(email_text):
+    return simple_preprocess(email_text)
 
-    # Decode email if in bytes
-    if isinstance(text, bytes):
-        text = text.decode('utf-8', errors='ignore')
+def train_spam_model(csv_path='data/enron_spam_data.csv'):
+    model_path = 'spam_classifier.pkl'
+    vectorizer_path = 'tfidf_vectorizer.pkl'
 
-    # Parse email if it's a string
-    msg = email.message_from_string(text) if isinstance(text, str) else text
-
-    # Extract email body
-    if msg.is_multipart():
-        for part in msg.walk():
-            if part.get_content_type() == 'text/plain':
-                text = part.get_payload(decode=True).decode('utf-8', errors='ignore')
-                break
-    else:
-        text = msg.get_payload(decode=True).decode('utf-8', errors='ignore') if msg.get_payload() else text
-
-    # Clean text
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'\S+@\S+', '', text)
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    text = text.lower()
-
-    # Tokenization
-    tokens = word_tokenize(text)
-
-    # Remove stopwords
-    stop_words = set(stopwords.words('english'))
-    tokens = [word for word in tokens if word not in stop_words]
-
-    # Lemmatization
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
-
-    return ' '.join(tokens)
-
-# Load and clean dataset
-def load_enron_data(data_path='data/enron_spam_data.csv'):
-    df = pd.read_csv(data_path)
+    print("📥 Loading dataset...")
+    df = pd.read_csv(csv_path)
     df = df.dropna(subset=['Message'])
-    df['cleaned_text'] = df['Message'].apply(preprocess_email)
+    df['processed_text'] = df['Message'].apply(preprocess_email)
     df['label'] = df['Spam/Ham'].map({'spam': 1, 'ham': 0})
-    return df[['cleaned_text', 'label']]
 
-# Train and save model
-def train_and_save_model():
-    df = load_enron_data()
-    X_train, X_test, y_train, y_test = train_test_split(df['cleaned_text'], df['label'], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        df['processed_text'], df['label'], test_size=0.2, random_state=42)
 
     vectorizer = TfidfVectorizer(max_features=5000)
-    X_train_tfidf = vectorizer.fit_transform(X_train)
-    X_test_tfidf = vectorizer.transform(X_test)
+    X_train_vec = vectorizer.fit_transform(X_train)
+    X_test_vec = vectorizer.transform(X_test)
 
     model = MultinomialNB()
-    model.fit(X_train_tfidf, y_train)
+    model.fit(X_train_vec, y_train)
 
-    with open('spam_classifier.pkl', 'wb') as f:
+    print("✅ Model trained.")
+
+    # Evaluation
+    y_pred = model.predict(X_test_vec)
+    acc = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, target_names=['Ham', 'Spam'])
+    cm = confusion_matrix(y_test, y_pred)
+
+    print(f"\n📊 Accuracy: {acc * 100:.2f}%")
+    print("\n📝 Classification Report:\n", report)
+    print("\n🔢 Confusion Matrix:\n", cm)
+
+    # Save model & vectorizer
+    with open(model_path, 'wb') as f:
         pickle.dump(model, f)
-    with open('tfidf_vectorizer.pkl', 'wb') as f:
+    with open(vectorizer_path, 'wb') as f:
         pickle.dump(vectorizer, f)
 
-    y_pred = model.predict(X_test_tfidf)
-    print("Accuracy:", accuracy_score(y_test, y_pred))
-    print("Classification Report:\n", classification_report(y_test, y_pred))
-    print("Model and vectorizer saved successfully.")
+    print("\n💾 Model and vectorizer saved.")
 
 if __name__ == "__main__":
-    train_and_save_model()
+    train_spam_model()
