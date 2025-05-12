@@ -1,0 +1,16 @@
+Email Spam Detector Performance Report
+========================================
+Accuracy: 0.9810
+Precision: 0.9780
+Recall: 0.9841
+F1-Score: 0.9810
+
+Classification Report:
+              precision    recall  f1-score   support
+
+         Ham       0.98      0.98      0.98      3333
+        Spam       0.98      0.98      0.98      3336
+
+    accuracy                           0.98      6669
+   macro avg       0.98      0.98      0.98      6669
+weighted avg       0.98      0.98      0.98      6669
