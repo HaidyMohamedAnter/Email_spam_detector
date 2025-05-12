@@ -1,8 +1,14 @@
 import streamlit as st
 import pickle
 from train_model import preprocess_email
-
-# تحميل النموذج و الـ vectorizer
+import nltk
+nltk.data.path.append("nltk_data")
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt') 
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import nltk
 def load_model():
     try:
         with open('spam_classifier.pkl', 'rb') as f:
@@ -14,7 +20,7 @@ def load_model():
         st.error("Model files not found. Please train the model first using train_model.py.")
         return None, None
 
-# تصنيف البريد الإلكتروني
+
 def classify_email(email_text, model, vectorizer):
     cleaned_text = preprocess_email(email_text)
     features = vectorizer.transform([cleaned_text])

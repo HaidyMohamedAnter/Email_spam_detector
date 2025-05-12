@@ -12,6 +12,10 @@ from sklearn.metrics import classification_report, accuracy_score
 import nltk
 nltk.download('stopwords')
 nltk.download('punkt') 
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import nltk
+nltk.data.path.append("nltk_data")
 # Function to preprocess email text (cleaning, tokenizing, lemmatizing)
 def preprocess_email(text):
     """Preprocess the text by removing headers, links, tokenizing, and lemmatizing."""
