@@ -9,7 +9,9 @@ from nltk.stem import WordNetLemmatizer
 import re
 import email
 from sklearn.metrics import classification_report, accuracy_score
-
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt') 
 # Function to preprocess email text (cleaning, tokenizing, lemmatizing)
 def preprocess_email(text):
     """Preprocess the text by removing headers, links, tokenizing, and lemmatizing."""
@@ -50,7 +52,7 @@ def preprocess_email(text):
     return ' '.join(tokens)
 
 # Function to load and clean the Enron email dataset
-def load_enron_data(data_path='enron_spam_data.csv'):
+def load_enron_data(data_path='data\enron_spam_data.csv'):
     """Load the Enron email dataset and clean the text."""
     df = pd.read_csv(data_path)
     df = df.dropna(subset=['Message'])  # Drop rows with missing email messages
